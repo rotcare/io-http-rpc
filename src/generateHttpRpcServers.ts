@@ -5,7 +5,6 @@ export function generateHttpRpcServers(models: Model[]): Record<string, HttpRpcS
     const lines = [`
     const { HttpRpcServer } = require('@rotcare/io-http-rpc');
     const httpRpcServers = {
-        migrate: new HttpRpcServer({ func: require('@motherboard/migrate').migrate })
     };`];
     models.sort((a, b) => a.qualifiedName.localeCompare(b.qualifiedName));
     for (const model of models) {

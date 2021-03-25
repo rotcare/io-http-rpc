@@ -19,7 +19,7 @@ export class HttpRpcClient implements ServiceProtocol {
     constructor(options?: { decode?: decode }) {
         this.decode = options?.decode;
     }
-    public async callService(scene: Scene, project: string, service: string, args: any[]) {
+    public async callService(scene: Scene, projectName: string, projectPort: number | undefined, service: string, args: any[]) {
         let resolve: (result: any) => void;
         let reject: (reason: any) => void;
         const promise = new Promise((_resolve, _reject) => {
@@ -29,7 +29,8 @@ export class HttpRpcClient implements ServiceProtocol {
         enqueue({
             decode: this.decode,
             scene,
-            project,
+            projectName,
+            projectPort,
             service,
             args,
             resolve: resolve!,
@@ -43,7 +44,8 @@ export class HttpRpcClient implements ServiceProtocol {
 interface RpcJob {
     decode?: decode;
     scene: Scene;
-    project: string;
+    projectName: string;
+    projectPort: number | undefined;
     service: string;
     args: string[];
     resolve: (result: any) => void;
@@ -58,22 +60,22 @@ interface RpcJob {
 const projects = new Map<string, Map<string, BatchExecutor<RpcJob>>>();
 
 function enqueue(job: RpcJob) {
-    let services = projects.get(job.project);
+    let services = projects.get(job.projectName);
     if (!services) {
-        projects.set(job.project, (services = new Map()));
+        projects.set(job.projectName, (services = new Map()));
     }
     let batchExecutor = services.get(job.service);
     if (!batchExecutor) {
         batchExecutor = new BatchExecutor<RpcJob>(
             32,
-            batchExecute.bind(undefined, job.project, job.service),
+            batchExecute.bind(undefined, job.projectName, job.projectPort, job.service),
         );
         services.set(job.service, batchExecutor);
     }
     batchExecutor.enqueue(job);
 }
 
-async function batchExecute(project: string, service: string, batch: RpcJob[]) {
+async function batchExecute(projectName: string, projectPort: number | undefined, service: string, batch: RpcJob[]) {
     const spanJobs = new Map<Span, RpcJob[]>();
     for (const job of batch) {
         let jobs = spanJobs.get(job.scene.span);
@@ -84,20 +86,21 @@ async function batchExecute(project: string, service: string, batch: RpcJob[]) {
     }
     const promises = [];
     for (const [span, jobs] of spanJobs.entries()) {
-        promises.push(batchExecuteSameSpanJobs(project, service, span, jobs));
+        promises.push(batchExecuteSameSpanJobs(projectName, projectPort, service, span, jobs));
     }
     await Promise.all(promises);
 }
 
 async function batchExecuteSameSpanJobs(
-    project: string,
+    projectName: string,
+    projectPort: number | undefined,
     service: string,
     parentSpan: Span,
     jobs: RpcJob[],
 ) {
     const span = newSpan(parentSpan);
     const headers: Record<string, string> = {
-        'x-project': project,
+        'x-project': projectName,
         'x-b3-traceid': span.traceId,
         'x-b3-parentspanid': span.parentSpanId,
         'x-b3-spanid': span.spanId,
@@ -106,7 +109,7 @@ async function batchExecuteSameSpanJobs(
     for (const [k, v] of Object.entries(span.baggage)) {
         headers[`baggage-${k}`] = v;
     }
-    const { host, port } = Scene.serviceDiscover({ project, port: 3000 });
+    const { host, port } = Scene.serviceDiscover(projectName, projectPort);
     const protocol = port === 443 ? 'https' : 'http';
     const url = `${protocol}://${host}:${port}/${service}`;
     // 不同的 service 对应到 api gateway 不同的 url，对应到 serverless 的不同 function
