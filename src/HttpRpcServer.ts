@@ -1,5 +1,5 @@
 import type { ServerResponse, IncomingMessage } from 'http';
-import { newTrace, Span, Scene, Atom, AtomReader, IoConf } from '@rotcare/io';
+import { newTrace, Span, Scene, Atom, AtomReader, SceneConf } from '@rotcare/io';
 import { JobBatch, Job } from './HttpRpc';
 
 export class HttpRpcServer {
@@ -9,7 +9,7 @@ export class HttpRpcServer {
             funcProvider?: () => Promise<Function>;
         },
     ) {}
-    public async handle(ioConf: IoConf, req: IncomingMessage, resp: ServerResponse) {
+    public async handle(conf: SceneConf, req: IncomingMessage, resp: ServerResponse) {
         let reqBody = '';
         req.on('data', (chunk) => {
             reqBody += chunk;
@@ -36,7 +36,7 @@ export class HttpRpcServer {
                 }
             }
             const span = createSpanFromHeaders(req.headers) || newTrace(`handle ${req.url}`);
-            const promises = batches.map((batch) => this.execute({ ioConf, batch, span, resp }));
+            const promises = batches.map((batch) => this.execute({ conf, batch, span, resp }));
             await Promise.all(promises);
         } catch (e) {
             for (let index = 0; index < jobs.length; index++) {
@@ -48,13 +48,13 @@ export class HttpRpcServer {
     }
 
     private async execute(options: {
-        ioConf: IoConf;
+        conf: SceneConf;
         batch: JobBatch;
         span: Span;
         resp: ServerResponse;
     }) {
         const { span, resp, batch } = options;
-        const scene = new Scene(span, options.ioConf);
+        const scene = new Scene(span, options.conf);
         const read: string[] = [];
         const changed: string[] = [];
         scene.onAtomChanged = (atom) => {

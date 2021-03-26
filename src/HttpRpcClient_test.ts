@@ -29,11 +29,10 @@ describe('HttpRpcClient', () => {
             })
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         const result = await scene.execute(undefined, async () => {
-            return await (scene.useServices('localhost') as any).doSomething1();
+            return await (scene.useService('localhost', 3000, 'default') as any).doSomething1();
         });
         strict.equal('/doSomething1', url);
         strict.deepEqual([[]], JSON.parse(reqBody));
@@ -56,11 +55,10 @@ describe('HttpRpcClient', () => {
             })
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         await strict.rejects(scene.execute(undefined, async () => {
-            return await (scene.useServices('localhost') as any).doSomething2();
+            return await (scene.useService('localhost', 3000, 'default') as any).doSomething2();
         }), (e) => {
             return e.message === 'wtf';
         })

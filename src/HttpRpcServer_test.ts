@@ -28,14 +28,13 @@ describe('HttpRpcServer', () => {
             },
         } as any);
         httpServer = http
-            .createServer(rpcServer.handle.bind(rpcServer, undefined as any))
+            .createServer(rpcServer.handle.bind(rpcServer, {} as any))
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         const result = await scene.execute(undefined, async () => {
-            return await (scene.useServices('localhost') as any).testMethod();
+            return await (scene.useService('localhost', 3000, 'default') as any).testMethod();
         });
         strict.equal(result, 'hello');
     });
@@ -48,14 +47,13 @@ describe('HttpRpcServer', () => {
             'testMethod',
         );
         httpServer = http
-            .createServer(rpcServer.handle.bind(rpcServer, undefined as any))
+            .createServer(rpcServer.handle.bind(rpcServer, {} as any))
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         const result = scene.execute(undefined, async () => {
-            return await (scene.useServices('localhost') as any).testMethod();
+            return await (scene.useService('localhost', 3000, 'default') as any).testMethod();
         });
         await strict.rejects(result, (e: any) => {
             return e.message.includes('wtf');
@@ -68,14 +66,13 @@ describe('HttpRpcServer', () => {
             },
         } as any);
         httpServer = http
-            .createServer(rpcServer.handle.bind(rpcServer, undefined as any))
+            .createServer(rpcServer.handle.bind(rpcServer, {} as any))
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         const result = scene.execute(undefined, async () => {
-            return await (scene.useServices('localhost') as any).testMethod();
+            return await (scene.useService('localhost', 3000, 'default') as any).testMethod();
         });
         await strict.rejects(result, (e: any) => {
             return e.message.includes('wtf');
@@ -99,14 +96,13 @@ describe('HttpRpcServer', () => {
             },
         } as any);
         httpServer = http
-            .createServer(rpcServer.handle.bind(rpcServer, undefined as any))
+            .createServer(rpcServer.handle.bind(rpcServer, {} as any))
             .listen(3000);
         const scene = new Scene(newTrace('test'), {
-            database: undefined as any,
-            serviceProtocol: new HttpRpcClient(),
+            service: new HttpRpcClient(),
         });
         const result = await scene.execute(undefined, async () => {
-            const gateway = scene.useServices('localhost') as any;
+            const gateway = scene.useService('localhost', 3000, 'default') as any;
             const promises = [gateway.testMethod(), gateway.testMethod()];
             return await Promise.all(promises);
         });
