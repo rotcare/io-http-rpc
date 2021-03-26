@@ -88,7 +88,7 @@ async function batchExecute(serviceName: string, servicePort: number, methodName
 
 async function batchExecuteSameSpanJobs(
     serviceName: string,
-    servicePort: number | undefined,
+    servicePort: number,
     methodName: string,
     parentSpan: Span,
     jobs: RpcJob[],
@@ -113,7 +113,6 @@ async function batchExecuteSameSpanJobs(
         headers,
         body: JSON.stringify(jobs.map((job) => job.request.args)),
     });
-    // TODO: 实用 body.getReader() 实现及时响应
     const lines = (await resp.text()).split('\n') as string[];
     for (const line of lines) {
         if (!line || !line.trim()) {
